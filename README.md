@@ -13,6 +13,16 @@ A simple, powerful CLI task runner configured via `Kookfile`. Think of it as `Ju
 
 ## Installation
 
+### Stable Releases
+
+Download the latest stable release from the [releases page](https://github.com/Florian-Varrin/Kook-cli/releases/latest).
+
+### Pre-release Versions
+
+Want to test upcoming features? Pre-release versions (alpha, beta, RC) are available on the [releases page](https://github.com/Florian-Varrin/Kook-cli/releases).
+
+⚠️ **Note:** Pre-releases may contain bugs or incomplete features. Use stable releases for production environments.
+
 ### Linux
 
 #### Debian/Ubuntu (.deb)
@@ -51,7 +61,7 @@ sudo dnf install kook_<version>_linux_amd64.rpm
 
 ```bash
 # Download the latest .apk package
-wget https://git###hub.com/Florian-Varrin/Kook-cli/releases/latest/download/kook_<version>_linux_amd64.apk
+wget https://github.com/Florian-Varrin/Kook-cli/releases/latest/download/kook_<version>_linux_amd64.apk
 
 # Install
 sudo apk add --allow-untrusted kook_<version>_linux_amd64.apk
@@ -567,6 +577,119 @@ cd ~/projects/myapp && kook start
 cd ~/projects/myapp/src && kook start
 cd ~/projects/myapp/src/components && kook start
 ```
+
+## Releases
+
+Kook follows a structured release process using GitFlow and automated releases via GitHub Actions.
+
+### Release Types
+
+We use [Semantic Versioning](https://semver.org/) with the following release types:
+
+- **Stable Releases**: `v1.0.0`, `v1.1.0`, `v2.0.0`
+    - Production-ready
+    - Fully tested
+    - Marked as "Latest" on GitHub
+
+- **Release Candidates (RC)**: `v1.0.0-rc.1`, `v1.0.0-rc.2`
+    - Feature-complete
+    - Final testing before stable release
+    - May have minor bugs
+
+- **Beta Releases**: `v1.0.0-beta.1`, `v1.0.0-beta.2`
+    - Major features implemented
+    - Still under active testing
+    - May have known issues
+
+- **Alpha Releases**: `v1.0.0-alpha.1`, `v1.0.0-alpha.2`
+    - Early preview
+    - Experimental features
+    - Not recommended for production
+
+### How Releases Work
+
+#### 1. Automated Release Process
+
+When a version tag is pushed to GitHub, our CI/CD pipeline automatically:
+
+1. ✅ Runs all tests
+2. ✅ Builds binaries for all platforms (Linux, macOS, Windows)
+3. ✅ Creates package formats (.deb, .rpm, .apk)
+4. ✅ Generates checksums
+5. ✅ Creates a GitHub Release
+6. ✅ Uploads all artifacts
+7. ✅ Generates changelog from commits
+
+#### 2. Pre-release Detection
+
+The system automatically detects pre-releases:
+- Tags containing `alpha`, `beta`, or `rc` are marked as pre-releases
+- Pre-releases don't appear as "Latest" release
+- Users can opt-in to download pre-releases from the releases page
+
+#### 3. Release Workflow (for Contributors)
+
+**For stable releases:**
+```bash
+# Using GitFlow
+git flow release start 1.1.0
+# Make final changes, update docs...
+git flow release finish 1.1.0
+git push origin master develop --tags
+```
+
+**For release candidates:**
+```bash
+# Create RC before finishing release
+git flow release start 1.1.0
+# ... make changes ...
+git tag -a v1.1.0-rc.1 -m "Release candidate 1"
+git push origin v1.1.0-rc.1
+# Test the RC...
+# When ready, finish release normally
+git flow release finish 1.1.0
+git push origin master develop --tags
+```
+
+**For experimental features:**
+```bash
+# On a feature branch
+git tag -a v1.2.0-alpha.1 -m "Early alpha of new feature"
+git push origin v1.2.0-alpha.1
+```
+
+### Available Platforms
+
+Each release includes binaries for:
+
+**Linux:**
+- amd64 (64-bit Intel/AMD)
+- arm64 (64-bit ARM)
+- Formats: .tar.gz, .deb, .rpm, .apk
+
+**macOS:**
+- amd64 (Intel Macs)
+- arm64 (Apple Silicon M1/M2/M3)
+- Format: .tar.gz
+
+**Windows:**
+- amd64 (64-bit)
+- arm64 (ARM64)
+- Format: .zip
+
+### Choosing the Right Release
+
+- **Production use**: Use the latest stable release (no suffix)
+- **Testing new features**: Use the latest RC (release candidate)
+- **Early preview**: Use beta or alpha releases (expect bugs!)
+
+### Downloading Releases
+
+Visit the [releases page](https://github.com/Florian-Varrin/Kook-cli/releases) to:
+- View all releases and their changelogs
+- Download binaries for your platform
+- See checksums for verification
+- Access pre-release versions
 
 ## Development
 
