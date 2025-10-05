@@ -239,13 +239,29 @@ func addFlag(cobraCmd *cobra.Command, opt config.Option) {
 
 	switch opt.Type {
 	case "bool":
-		cobraCmd.Flags().Bool(opt.Name, false, usage)
+		if opt.Shorthand != "" {
+			cobraCmd.Flags().BoolP(opt.Name, opt.Shorthand, false, usage)
+		} else {
+			cobraCmd.Flags().Bool(opt.Name, false, usage)
+		}
 	case "str":
-		cobraCmd.Flags().String(opt.Name, "", usage)
+		if opt.Shorthand != "" {
+			cobraCmd.Flags().StringP(opt.Name, opt.Shorthand, "", usage)
+		} else {
+			cobraCmd.Flags().String(opt.Name, "", usage)
+		}
 	case "int":
-		cobraCmd.Flags().Int(opt.Name, 0, usage)
+		if opt.Shorthand != "" {
+			cobraCmd.Flags().IntP(opt.Name, opt.Shorthand, 0, usage)
+		} else {
+			cobraCmd.Flags().Int(opt.Name, 0, usage)
+		}
 	case "float":
-		cobraCmd.Flags().Float64(opt.Name, 0.0, usage)
+		if opt.Shorthand != "" {
+			cobraCmd.Flags().Float64P(opt.Name, opt.Shorthand, 0.0, usage)
+		} else {
+			cobraCmd.Flags().Float64(opt.Name, 0.0, usage)
+		}
 	default:
 		fmt.Fprintf(os.Stderr, "Warning: unknown option type '%s' for option '%s'\n", opt.Type, opt.Name)
 	}

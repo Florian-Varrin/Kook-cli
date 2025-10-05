@@ -287,11 +287,12 @@ Options define command-line flags:
 
 ```yaml
 options:
-  - name: dry-run              # CLI flag: --dry-run
-    description: Preview only  # Optional: option description
-    var: dryRun                # Template variable: .dryRun (optional, defaults to dry_run)
-    type: bool                 # Type: bool, str, int, float
-    mandatory: true            # Make it required (optional, default: false)
+    - name: dry-run              # CLI flag: --dry-run
+      shorthand: d               # Optional: short flag -d
+      description: Preview only  # Optional: option description
+      var: dryRun                # Template variable: .dryRun (optional, defaults to dry_run)
+      type: bool                 # Type: bool, str, int, float
+      mandatory: true            # Make it required (optional, default: false)
 ```
 
 **Important**: CLI flags use hyphens (`--dry-run`), but template variables use underscores or custom names:
