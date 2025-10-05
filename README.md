@@ -203,6 +203,13 @@ commands:
 
 ### JetBrains IDEs (IntelliJ, WebStorm, PyCharm, etc.)
 
+**First time setup:**
+
+1. Open your `Kookfile`
+2. IntelliJ will likely not recognize it as YAML initially
+3. Right-click the file → **Associate with File Type** → **YAML**
+4. Alternatively, go to **Settings** → **Editor** → **File Types** → **YAML** → Add pattern `Kookfile`
+
 **Option 1: Inline schema (recommended)**
 
 Add this comment to the top of your `Kookfile`:
@@ -216,7 +223,7 @@ Add this comment to the top of your `Kookfile`:
 2. Click **+** to add new mapping
 3. Name: `Kookfile`
 4. Schema URL: `https://raw.githubusercontent.com/Florian-Varrin/Kook-cli/master/kookfile-schema.json`
-5. File path pattern: `Kookfile`
+5. Add file path pattern: `Kookfile`
 
 ### Vim/Neovim
 
