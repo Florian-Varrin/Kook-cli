@@ -13,14 +13,14 @@ import (
 )
 
 // Execute is the main entry point for the CLI
-func Execute() error {
-	rootCmd := buildRootCommand()
+func Execute(version string) error {
+	rootCmd := buildRootCommand(version)
 
 	// Try to load config and add dynamic commands
 	cfg, err := config.FindAndLoad()
 	if err != nil {
-		// If no config found, still allow completion command to work
-		if len(os.Args) > 1 && os.Args[1] == "completion" {
+		// If no config found, still allow completion and version commands to work
+		if len(os.Args) > 1 && (os.Args[1] == "completion" || os.Args[1] == "version") {
 			return rootCmd.Execute()
 		}
 		return fmt.Errorf("failed to load config: %w", err)
@@ -34,7 +34,7 @@ func Execute() error {
 	return rootCmd.Execute()
 }
 
-func buildRootCommand() *cobra.Command {
+func buildRootCommand(version string) *cobra.Command {
 	rootCmd := &cobra.Command{
 		Use:   "kook",
 		Short: "A simple CLI tool configured via Kookfile",
@@ -43,6 +43,7 @@ func buildRootCommand() *cobra.Command {
 Each project can have its own Kookfile with custom commands,
 options, and variables. Commands support Go templates for
 dynamic script generation.`,
+		Version: version, // Set version here
 		ValidArgsFunction: func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 			// Dynamic completion: load current directory's Kookfile
 			cfg, err := config.FindAndLoad()
@@ -70,7 +71,6 @@ dynamic script generation.`,
 		},
 	}
 
-	// Add completion command
 	rootCmd.AddCommand(buildCompletionCommand())
 
 	return rootCmd
