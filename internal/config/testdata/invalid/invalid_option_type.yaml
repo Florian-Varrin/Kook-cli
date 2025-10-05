@@ -1,0 +1,7 @@
+version: 1
+commands:
+  - name: test
+    options:
+      - name: bad
+        type: string
+    script: echo "test"

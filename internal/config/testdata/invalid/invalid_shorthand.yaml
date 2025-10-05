@@ -1,0 +1,8 @@
+version: 1
+commands:
+  - name: test
+    options:
+      - name: bad
+        shorthand: "ab"
+        type: bool
+    script: echo "test"

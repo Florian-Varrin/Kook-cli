@@ -1,0 +1,31 @@
+version: 1
+
+variables:
+  - name: container
+    value: myapp
+  - name: port
+    value: "8080"
+
+commands:
+  - name: start
+    description: Start application
+    help: |
+      Start the application with various options.
+      This is a longer help text.
+    aliases:
+      - up
+      - run
+    silent: false
+    options:
+      - name: detach
+        shorthand: d
+        description: Run in background
+        type: bool
+      - name: replicas
+        shorthand: r
+        description: Number of replicas
+        var: replicaCount
+        type: int
+        mandatory: false
+    script: |
+      docker run -p {{ .port }}:8080 {{ .container }}

@@ -1,0 +1,25 @@
+version: 1
+
+variables:
+  - name: app_name
+    value: testapp
+  - name: registry
+    value: docker.io
+
+commands:
+  - name: deploy
+    description: Deploy application
+    aliases:
+      - d
+    options:
+      - name: environment
+        shorthand: e
+        description: Target environment
+        type: str
+        mandatory: true
+      - name: dry-run
+        shorthand: d
+        description: Dry run mode
+        type: bool
+    script: |
+      echo "Deploying {{ .app_name }} to {{ .environment }}"

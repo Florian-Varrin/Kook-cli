@@ -40,21 +40,25 @@ func FindAndLoad() (*Config, error) {
 	return nil, fmt.Errorf("no %s found in current directory or parent directories", ConfigFileName)
 }
 
-// Load reads and parses a Kookfile
+// Load reads and parses a Kookfile with validation
 func Load(filename string) (*Config, error) {
 	data, err := os.ReadFile(filename)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to read config file: %w", err)
+	}
+
+	if len(data) == 0 {
+		return nil, fmt.Errorf("config file is empty")
 	}
 
 	var config Config
 	if err := yaml.Unmarshal(data, &config); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to parse YAML: %w", err)
 	}
 
-	// Validate version
-	if config.Version != 1 {
-		return nil, fmt.Errorf("unsupported config version: %d (expected 1)", config.Version)
+	// Validate the config
+	if err := validateConfig(&config); err != nil {
+		return nil, err
 	}
 
 	// Build variable map for template access
