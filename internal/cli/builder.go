@@ -36,6 +36,11 @@ func buildRootCommand() *cobra.Command {
 	rootCmd := &cobra.Command{
 		Use:   "kook",
 		Short: "A simple CLI tool configured via Kookfile",
+		Long: `Kook is a task runner that reads commands from a Kookfile.
+
+Each project can have its own Kookfile with custom commands,
+options, and variables. Commands support Go templates for
+dynamic script generation.`,
 		ValidArgsFunction: func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 			// Dynamic completion: load current directory's Kookfile
 			cfg, err := config.FindAndLoad()
@@ -45,8 +50,19 @@ func buildRootCommand() *cobra.Command {
 
 			var completions []string
 			for _, c := range cfg.Commands {
-				completions = append(completions, c.Name)
-				completions = append(completions, c.Aliases...)
+				if c.Description != "" {
+					completions = append(completions, fmt.Sprintf("%s\t%s", c.Name, c.Description))
+				} else {
+					completions = append(completions, c.Name)
+				}
+
+				for _, alias := range c.Aliases {
+					if c.Description != "" {
+						completions = append(completions, fmt.Sprintf("%s\t%s", alias, c.Description))
+					} else {
+						completions = append(completions, alias)
+					}
+				}
 			}
 			return completions, cobra.ShellCompDirectiveNoFileComp
 		},
@@ -62,6 +78,8 @@ func buildCommand(cfg *config.Config, cmd config.Command) *cobra.Command {
 	cobraCmd := &cobra.Command{
 		Use:     cmd.Name,
 		Aliases: cmd.Aliases,
+		Short:   cmd.Description,
+		Long:    cmd.Help,
 		RunE: func(cobraCmd *cobra.Command, args []string) error {
 			return executor.Execute(cfg, cmd, cobraCmd)
 		},
@@ -81,15 +99,17 @@ func buildCommand(cfg *config.Config, cmd config.Command) *cobra.Command {
 }
 
 func addFlag(cobraCmd *cobra.Command, opt config.Option) {
+	usage := opt.Description
+
 	switch opt.Type {
 	case "bool":
-		cobraCmd.Flags().Bool(opt.Name, false, "")
+		cobraCmd.Flags().Bool(opt.Name, false, usage)
 	case "str":
-		cobraCmd.Flags().String(opt.Name, "", "")
+		cobraCmd.Flags().String(opt.Name, "", usage)
 	case "int":
-		cobraCmd.Flags().Int(opt.Name, 0, "")
+		cobraCmd.Flags().Int(opt.Name, 0, usage)
 	case "float":
-		cobraCmd.Flags().Float64(opt.Name, 0.0, "")
+		cobraCmd.Flags().Float64(opt.Name, 0.0, usage)
 	default:
 		fmt.Fprintf(os.Stderr, "Warning: unknown option type '%s' for option '%s'\n", opt.Type, opt.Name)
 	}
