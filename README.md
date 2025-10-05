@@ -386,10 +386,17 @@ script: |
 
 ```yaml
 script: |
+  # If condition is true
   {{- if .verbose }}
   echo "Verbose mode enabled"
   {{- end }}
   
+  # If condition is false (negation)
+  {{- if not .verbose }}
+  echo "Quiet mode"
+  {{- end }}
+  
+  # If/else
   {{- if eq .environment "prod" }}
   echo "Production deployment"
   {{- else }}
@@ -412,6 +419,7 @@ script: |
 - Use `{{- ... }}` to trim whitespace before
 - Use `... -}}` to trim whitespace after
 - Use `{{ if .flag }}...{{ end }}` for conditionals
+- Use `{{ if not .flag }}...{{ end }}` for negation
 - Use `{{ .var }}` to access variables/options
 
 ## Examples
