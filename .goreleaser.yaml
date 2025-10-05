@@ -34,6 +34,24 @@ archives:
       - README.md
       - LICENSE
 
+nfpms:
+  - package_name: kook
+    vendor: Florian Varrin
+    homepage: https://github.com/Florian-Varrin/Kook-cli
+    maintainer: Florian Varrin <your.email@example.com>
+    description: A simple, powerful CLI task runner configured via Kookfile
+    license: MIT
+    formats:
+      - deb
+      - rpm
+      - apk
+    bindir: /usr/bin
+    contents:
+      - src: ./README.md
+        dst: /usr/share/doc/kook/README.md
+      - src: ./LICENSE
+        dst: /usr/share/doc/kook/LICENSE
+
 checksum:
   name_template: 'checksums.txt'
 
@@ -52,4 +70,7 @@ release:
     owner: Florian-Varrin
     name: Kook-cli
   draft: false
+  # GoReleaser automatically marks as pre-release if version contains: alpha, beta, rc
   prerelease: auto
+  # Optionally, make latest release point only to stable versions
+  make_latest: true

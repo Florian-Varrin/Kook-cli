@@ -13,12 +13,101 @@ A simple, powerful CLI task runner configured via `Kookfile`. Think of it as `Ju
 
 ## Installation
 
+### Linux
+
+#### Debian/Ubuntu (.deb)
+
+```bash
+# Download the latest .deb package
+wget https://github.com/Florian-Varrin/Kook-cli/releases/latest/download/kook_<version>_linux_amd64.deb
+
+# Install
+sudo dpkg -i kook_<version>_linux_amd64.deb
+
+# Or use apt (handles dependencies better)
+sudo apt install ./kook_<version>_linux_amd64.deb
+```
+
+For ARM64:
+```bash
+wget https://github.com/Florian-Varrin/Kook-cli/releases/latest/download/kook_<version>_linux_arm64.deb
+sudo apt install ./kook_<version>_linux_arm64.deb
+```
+
+#### RedHat/Fedora/CentOS (.rpm)
+
+```bash
+# Download the latest .rpm package
+wget https://github.com/Florian-Varrin/Kook-cli/releases/latest/download/kook_<version>_linux_amd64.rpm
+
+# Install
+sudo rpm -i kook_<version>_linux_amd64.rpm
+
+# Or with dnf
+sudo dnf install kook_<version>_linux_amd64.rpm
+```
+
+#### Alpine (.apk)
+
+```bash
+# Download the latest .apk package
+wget https://git###hub.com/Florian-Varrin/Kook-cli/releases/latest/download/kook_<version>_linux_amd64.apk
+
+# Install
+sudo apk add --allow-untrusted kook_<version>_linux_amd64.apk
+```
+
+#### Manual Installation (Any Linux)
+
+```bash
+# Download and extract
+curl -L https://github.com/Florian-Varrin/Kook-cli/releases/latest/download/kook_<version>_linux_amd64.tar.gz | tar xz
+
+# Move to PATH
+sudo mv kook /usr/local/bin/
+
+# Verify installation
+kook --version
+```
+
+### macOS
+
+```bash
+# Download and extract
+curl -L https://github.com/Florian-Varrin/Kook-cli/releases/latest/download/kook_<version>_darwin_amd64.tar.gz | tar xz
+
+# Move to PATH
+sudo mv kook /usr/local/bin/
+
+# For Apple Silicon (M1/M2/M3)
+curl -L https://github.com/Florian-Varrin/Kook-cli/releases/latest/download/kook_<version>_darwin_arm64.tar.gz | tar xz
+sudo mv kook /usr/local/bin/
+```
+
+### Windows
+
+1. Download the latest Windows release from [releases page](https://github.com/Florian-Varrin/Kook-cli/releases)
+2. Extract the `.zip` file
+3. Move `kook.exe` to a directory in your PATH
+
+Or use PowerShell:
+```powershell
+# Download (replace <version> with actual version number)
+Invoke-WebRequest -Uri "https://github.com/Florian-Varrin/Kook-cli/releases/latest/download/kook_<version>_windows_amd64.zip" -OutFile "kook.zip"
+
+# Extract
+Expand-Archive -Path kook.zip -DestinationPath .
+
+# Move to a directory in your PATH (example)
+Move-Item kook.exe C:\Windows\System32\
+```
+
 ### From Source
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/kook.git
-cd kook
+git clone https://github.com/Florian-Varrin/Kook-cli.git
+cd Kook-cli
 
 # Build and install
 go build -o kook
@@ -26,6 +115,14 @@ sudo mv kook /usr/local/bin/
 
 # Or use go install
 go install
+```
+
+### Verify Installation
+
+After installation, verify it works:
+
+```bash
+kook --version
 ```
 
 ## Quick Start
