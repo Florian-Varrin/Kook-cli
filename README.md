@@ -9,6 +9,7 @@ A simple, powerful CLI task runner configured via `Kookfile`. Think of it as `Ju
 - **Type-safe options**: Define boolean, string, integer, and float options with validation
 - **Interactive mode**: Use `--interactive` flag to get prompted for options with a user-friendly interface
 - **Auto-completion**: Smart shell completion that adapts to each project's `Kookfile`
+- **IDE support**: JSON Schema for auto-completion and validation in VS Code, JetBrains IDEs, and more
 - **Zero config**: Just drop a `Kookfile` in your project and you're ready to go
 
 ## Installation
@@ -174,6 +175,69 @@ kook logs --follow
 
 That's it! 🎉
 
+## IDE Support
+
+Kook provides JSON Schema for auto-completion and validation in your IDE.
+
+### VS Code
+
+1. Install the [YAML extension](https://marketplace.visualstudio.com/items?itemName=redhat.vscode-yaml)
+2. Add this comment to the top of your `Kookfile`:
+
+```yaml
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Florian-Varrin/Kook-cli/master/kookfile-schema.json
+
+version: 1
+commands:
+  - name: example
+    # IDE now provides auto-completion, validation, and inline documentation!
+    description: Example command
+    script: echo "Hello"
+```
+
+**What you get:**
+- ✅ Auto-completion for all fields (type `.` to see suggestions)
+- ✅ Inline documentation on hover
+- ✅ Real-time validation and error detection
+- ✅ Dropdown suggestions for enums (e.g., `type: bool|str|int|float`)
+
+### JetBrains IDEs (IntelliJ, WebStorm, PyCharm, etc.)
+
+**First time setup:**
+
+1. Open your `Kookfile`
+2. IntelliJ will likely not recognize it as YAML initially
+3. Right-click the file → **Associate with File Type** → **YAML**
+4. Alternatively, go to **Settings** → **Editor** → **File Types** → **YAML** → Add pattern `Kookfile`
+
+**Option 1: Inline schema (recommended)**
+
+Add this comment to the top of your `Kookfile`:
+```yaml
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Florian-Varrin/Kook-cli/master/kookfile-schema.json
+```
+
+**Option 2: Configure globally**
+
+1. Go to **Settings** → **Languages & Frameworks** → **Schemas and DTDs** → **JSON Schema Mappings**
+2. Click **+** to add new mapping
+3. Name: `Kookfile`
+4. Schema URL: `https://raw.githubusercontent.com/Florian-Varrin/Kook-cli/master/kookfile-schema.json`
+5. Add file path pattern: `Kookfile`
+
+### Vim/Neovim
+
+**With coc.nvim:**
+
+Add to your `coc-settings.json`:
+```json
+{
+  "yaml.schemas": {
+    "https://raw.githubusercontent.com/Florian-Varrin/Kook-cli/master/kookfile-schema.json": "Kookfile"
+  }
+}
+```
+
 ## Interactive Mode
 
 Every command automatically supports `--interactive` (or `-i`) mode, which prompts you for options instead of requiring them on the command line.
@@ -246,6 +310,7 @@ commands:
     silent: false                   # Optional: hide "Executing..." output (default: false)
     options:                        # Optional: command options/flags
       - name: environment           # Required: option name (use hyphens for CLI)
+        shorthand: e                # Optional: single letter shorthand (e.g., 'e' for -e)
         description: Target env     # Optional: option description/help text
         var: env                    # Optional: variable name in template (default: auto-convert hyphens to underscores)
         type: str                   # Required: bool, str, int, or float
@@ -287,17 +352,20 @@ Options define command-line flags:
 
 ```yaml
 options:
-    - name: dry-run              # CLI flag: --dry-run
-      shorthand: d               # Optional: short flag -d
-      description: Preview only  # Optional: option description
-      var: dryRun                # Template variable: .dryRun (optional, defaults to dry_run)
-      type: bool                 # Type: bool, str, int, float
-      mandatory: true            # Make it required (optional, default: false)
+  - name: dry-run              # CLI flag: --dry-run
+    shorthand: d               # Optional: short flag -d
+    description: Preview only  # Optional: option description
+    var: dryRun                # Template variable: .dryRun (optional, defaults to dry_run)
+    type: bool                 # Type: bool, str, int, float
+    mandatory: true            # Make it required (optional, default: false)
 ```
 
-**Important**: CLI flags use hyphens (`--dry-run`), but template variables use underscores or custom names:
-- `--dry-run` → `.dry_run` (automatic)
-- `--dry-run` with `var: dryRun` → `.dryRun` (explicit)
+**Important**:
+- CLI flags use hyphens (`--dry-run`), but template variables use underscores or custom names:
+    - `--dry-run` → `.dry_run` (automatic)
+    - `--dry-run` with `var: dryRun` → `.dryRun` (explicit)
+- Shorthand must be a single letter (e.g., `d`, `v`, `e`)
+- Reserved shorthands: `-h` (help), `-i` (interactive)
 
 ### Templates
 
@@ -364,6 +432,7 @@ commands:
       - up
     options:
       - name: detach
+        shorthand: d
         description: Run in detached mode
         type: bool
     script: |
@@ -380,10 +449,12 @@ commands:
     description: Show service logs
     options:
       - name: service
+        shorthand: s
         description: Service name
         type: str
         mandatory: true
       - name: follow
+        shorthand: f
         description: Follow log output
         type: bool
     script: |
@@ -393,6 +464,7 @@ commands:
     description: Restart a service
     options:
       - name: service
+        shorthand: s
         description: Service name
         type: str
         mandatory: true
@@ -403,14 +475,21 @@ commands:
 Usage:
 ```bash
 kook start --detach
+kook start -d              # Using shorthand
+
 kook logs --service api --follow
+kook logs -s api -f        # Using shorthands
+
 kook restart --service worker
+kook restart -s worker     # Using shorthand
+
 kook stop
 
 # Or use interactive mode
 kook logs -i
 kook restart -i
 ```
+
 ### Cache Management
 
 ```yaml
@@ -427,6 +506,7 @@ commands:
       - cc
     options:
       - name: full
+        shorthand: f
         description: Perform full cache clear including warmup
         type: bool
     script: |
@@ -445,6 +525,8 @@ Usage:
 ```bash
 kook cc
 kook cc --full
+kook cc -f         # Using shorthand
+
 kook warm
 
 # Interactive mode
