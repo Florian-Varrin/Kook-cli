@@ -3,10 +3,12 @@ package cli
 import (
 	"fmt"
 	"os"
+	"strconv"
 
 	"kook/internal/config"
 	"kook/internal/executor"
 
+	"github.com/AlecAivazis/survey/v2"
 	"github.com/spf13/cobra"
 )
 
@@ -81,21 +83,155 @@ func buildCommand(cfg *config.Config, cmd config.Command) *cobra.Command {
 		Short:   cmd.Description,
 		Long:    cmd.Help,
 		RunE: func(cobraCmd *cobra.Command, args []string) error {
+			interactive, _ := cobraCmd.Flags().GetBool("interactive")
+
+			if interactive {
+				if err := promptForOptions(cobraCmd, cmd); err != nil {
+					return fmt.Errorf("interactive prompt failed: %w", err)
+				}
+
+				// Validate mandatory fields after interactive input
+				for _, opt := range cmd.Options {
+					if opt.Mandatory {
+						var isEmpty bool
+						switch opt.Type {
+						case "bool":
+							isEmpty = false
+						case "str":
+							val, _ := cobraCmd.Flags().GetString(opt.Name)
+							isEmpty = val == ""
+						case "int":
+							isEmpty = !cobraCmd.Flags().Changed(opt.Name)
+						case "float":
+							isEmpty = !cobraCmd.Flags().Changed(opt.Name)
+						}
+
+						if isEmpty {
+							return fmt.Errorf("required option '%s' not provided", opt.Name)
+						}
+					}
+				}
+			}
+
 			return executor.Execute(cfg, cmd, cobraCmd)
 		},
 	}
 
-	// Add flags for each option
+	cobraCmd.Flags().BoolP("interactive", "i", false, "Use interactive mode to select options")
+
 	for _, opt := range cmd.Options {
 		addFlag(cobraCmd, opt)
+		// Don't use MarkFlagRequired - we'll validate manually
+	}
 
-		// Mark as required if mandatory
-		if opt.Mandatory {
-			cobraCmd.MarkFlagRequired(opt.Name)
+	// Custom flag validation that checks if we're in interactive mode
+	cobraCmd.PreRunE = func(cobraCmd *cobra.Command, args []string) error {
+		interactive, _ := cobraCmd.Flags().GetBool("interactive")
+		if !interactive {
+			// Only validate required flags if NOT in interactive mode
+			for _, opt := range cmd.Options {
+				if opt.Mandatory && !cobraCmd.Flags().Changed(opt.Name) {
+					return fmt.Errorf("required flag(s) \"%s\" not set", opt.Name)
+				}
+			}
 		}
+		return nil
 	}
 
 	return cobraCmd
+}
+
+func promptForOptions(cobraCmd *cobra.Command, cmd config.Command) error {
+	for _, opt := range cmd.Options {
+		// Skip if flag was already provided via command line
+		if cobraCmd.Flags().Changed(opt.Name) {
+			continue
+		}
+
+		var prompt survey.Prompt
+		message := opt.Name
+		if opt.Description != "" {
+			message = opt.Description
+		}
+
+		switch opt.Type {
+		case "bool":
+			prompt = &survey.Select{
+				Message: message,
+				Options: []string{"Yes", "No"},
+				Default: "No",
+			}
+			var answer string
+			if err := survey.AskOne(prompt, &answer); err != nil {
+				return err
+			}
+			value := answer == "Yes"
+			cobraCmd.Flags().Set(opt.Name, strconv.FormatBool(value))
+
+		case "str":
+			prompt = &survey.Input{
+				Message: message,
+			}
+			var answer string
+			if err := survey.AskOne(prompt, &answer, survey.WithValidator(func(ans interface{}) error {
+				if opt.Mandatory && ans.(string) == "" {
+					return fmt.Errorf("this field is required")
+				}
+				return nil
+			})); err != nil {
+				return err
+			}
+			cobraCmd.Flags().Set(opt.Name, answer)
+
+		case "int":
+			prompt = &survey.Input{
+				Message: message,
+			}
+			var answer string
+			if err := survey.AskOne(prompt, &answer, survey.WithValidator(func(ans interface{}) error {
+				str := ans.(string)
+				if opt.Mandatory && str == "" {
+					return fmt.Errorf("this field is required")
+				}
+				if str != "" {
+					if _, err := strconv.Atoi(str); err != nil {
+						return fmt.Errorf("must be a valid integer")
+					}
+				}
+				return nil
+			})); err != nil {
+				return err
+			}
+			if answer != "" {
+				cobraCmd.Flags().Set(opt.Name, answer)
+			}
+
+		case "float":
+			prompt = &survey.Input{
+				Message: message,
+			}
+			var answer string
+			if err := survey.AskOne(prompt, &answer, survey.WithValidator(func(ans interface{}) error {
+				str := ans.(string)
+				if opt.Mandatory && str == "" {
+					return fmt.Errorf("this field is required")
+				}
+				if str != "" {
+					if _, err := strconv.ParseFloat(str, 64); err != nil {
+						return fmt.Errorf("must be a valid number")
+					}
+				}
+				return nil
+			})); err != nil {
+				return err
+			}
+			if answer != "" {
+				cobraCmd.Flags().Set(opt.Name, answer)
+			}
+		}
+	}
+
+	return nil
 }
 
 func addFlag(cobraCmd *cobra.Command, opt config.Option) {

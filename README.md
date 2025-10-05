@@ -7,6 +7,7 @@ A simple, powerful CLI task runner configured via `Kookfile`. Think of it as `Ju
 - **Project-specific commands**: Each project can have its own `Kookfile` with custom commands
 - **Template-driven**: Use Go templates to create dynamic commands based on options and variables
 - **Type-safe options**: Define boolean, string, integer, and float options with validation
+- **Interactive mode**: Use `--interactive` flag to get prompted for options with a user-friendly interface
 - **Auto-completion**: Smart shell completion that adapts to each project's `Kookfile`
 - **Zero config**: Just drop a `Kookfile` in your project and you're ready to go
 
@@ -65,6 +66,47 @@ kook logs --follow
 ```
 
 That's it! 🎉
+
+## Interactive Mode
+
+Every command automatically supports `--interactive` (or `-i`) mode, which prompts you for options instead of requiring them on the command line.
+
+### Usage
+
+```bash
+# Regular mode with flags
+kook deploy --environment production --tag v1.2.3 --dry-run
+
+# Interactive mode - prompts for all options
+kook deploy --interactive
+
+# Shorthand
+kook deploy -i
+
+# Mix both - interactive only prompts for missing options
+kook deploy --environment production -i
+```
+
+### Example Interaction
+
+```bash
+$ kook deploy -i
+? Target environment (staging, production): production
+? Docker image tag to deploy: v1.2.3
+? Show what would happen without executing
+  ❯ Yes
+    No
+
+Executing: kubectl set image deployment/app app=v1.2.3 -n production
+```
+
+### Benefits
+
+- ✅ **Easier to use** - No need to remember flag names
+- ✅ **Guided experience** - Option descriptions help users understand what to enter
+- ✅ **Mandatory validation** - Won't proceed without required fields
+- ✅ **Type validation** - Ensures correct input types (int, float, etc.)
+- ✅ **Mix with flags** - Combine CLI flags with interactive prompts
 
 ## Kookfile Structure
 
@@ -256,6 +298,10 @@ kook start --detach
 kook logs --service api --follow
 kook restart --service worker
 kook stop
+
+# Or use interactive mode
+kook logs -i
+kook restart -i
 ```
 ### Cache Management
 
@@ -292,6 +338,9 @@ Usage:
 kook cc
 kook cc --full
 kook warm
+
+# Interactive mode
+kook cc -i
 ```
 
 ## Shell Completion
