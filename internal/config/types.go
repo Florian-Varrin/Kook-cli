@@ -26,6 +26,7 @@ type Command struct {
 
 type Option struct {
 	Name        string `yaml:"name"`
+	Shorthand   string `yaml:"shorthand,omitempty"`
 	Description string `yaml:"description,omitempty"`
 	Var         string `yaml:"var,omitempty"`
 	Type        string `yaml:"type"`
