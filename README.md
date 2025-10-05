@@ -40,6 +40,7 @@ variables:
 
 commands:
   - name: start
+    description: Start the application
     aliases:
       - up
     script: |
@@ -47,8 +48,10 @@ commands:
       echo "Started {{ .container }}"
 
   - name: logs
+    description: Show container logs
     options:
       - name: follow
+        description: Follow log output
         type: bool
     script: |
       docker logs {{ .container }} {{- if .follow }} -f{{- end }}
@@ -84,11 +87,17 @@ commands:               # Required: your custom commands
 ```yaml
 commands:
   - name: deploy                    # Required: command name
+    description: Deploy to env      # Optional: short one-line description
+    help: |                         # Optional: long multi-line help text
+      Detailed explanation of what this command does.
+      
+      Can include multiple paragraphs and examples.
     aliases:                        # Optional: command shortcuts
       - d
     silent: false                   # Optional: hide "Executing..." output (default: false)
     options:                        # Optional: command options/flags
       - name: environment           # Required: option name (use hyphens for CLI)
+        description: Target env     # Optional: option description/help text
         var: env                    # Optional: variable name in template (default: auto-convert hyphens to underscores)
         type: str                   # Required: bool, str, int, or float
         mandatory: true             # Optional: make option required (default: false)
@@ -109,6 +118,7 @@ variables:
 
 commands:
   - name: build
+    description: Build Docker image
     script: |
       docker build -t {{ .docker_registry }}/{{ .app_name }}:latest .
 ```
@@ -129,6 +139,7 @@ Options define command-line flags:
 ```yaml
 options:
   - name: dry-run              # CLI flag: --dry-run
+    description: Preview only  # Optional: option description
     var: dryRun                # Template variable: .dryRun (optional, defaults to dry_run)
     type: bool                 # Type: bool, str, int, float
     mandatory: true            # Make it required (optional, default: false)
@@ -198,33 +209,41 @@ variables:
 
 commands:
   - name: start
+    description: Start development environment
     aliases:
       - up
     options:
       - name: detach
+        description: Run in detached mode
         type: bool
     script: |
       docker compose -f {{ .compose_file }} up {{- if .detach }} -d{{- end }}
 
   - name: stop
+    description: Stop development environment
     aliases:
       - down
     script: |
       docker compose -f {{ .compose_file }} down
 
   - name: logs
+    description: Show service logs
     options:
       - name: service
+        description: Service name
         type: str
         mandatory: true
       - name: follow
+        description: Follow log output
         type: bool
     script: |
       docker compose -f {{ .compose_file }} logs {{ .service }} {{- if .follow }} -f{{- end }}
 
   - name: restart
+    description: Restart a service
     options:
       - name: service
+        description: Service name
         type: str
         mandatory: true
     script: |
@@ -249,16 +268,19 @@ variables:
 
 commands:
   - name: clear-cache
+    description: Clear application cache
     aliases:
       - cc
     options:
       - name: full
+        description: Perform full cache clear including warmup
         type: bool
     script: |
       docker exec {{ .container }} bash -c 'rm -rf var/cache/* && chmod a+rw -R var/cache{{- if .full }} && php bin/console cache:clear{{- end }}'
       echo "Cache cleared{{- if .full }} (full){{- end }}"
 
   - name: warmup-cache
+    description: Warm up application cache
     aliases:
       - warm
     script: |
