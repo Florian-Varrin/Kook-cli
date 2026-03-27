@@ -54,6 +54,9 @@ func Execute(cfg *config.Config, cmd config.Command, cobraCmd *cobra.Command) er
 	bashCmd.Stdout = os.Stdout
 	bashCmd.Stderr = os.Stderr
 	bashCmd.Stdin = os.Stdin
+	if cfg.IsIncluded {
+		bashCmd.Dir = cfg.Dir
+	}
 
 	return bashCmd.Run()
 }

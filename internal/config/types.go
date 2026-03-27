@@ -3,12 +3,15 @@ package config
 import "strings"
 
 type Config struct {
-	Version   int                    `yaml:"version"`
-	Namespace string                 `yaml:"namespace,omitempty"`
-	Variables []Variable             `yaml:"variables"`
-	Commands  []Command              `yaml:"commands"`
-	VarMap    map[string]interface{} `yaml:"-"`
-	Dir       string                 `yaml:"-"`
+	Version         int                    `yaml:"version"`
+	Namespace       string                 `yaml:"namespace,omitempty"`
+	Includes        []string               `yaml:"includes,omitempty"`
+	Variables       []Variable             `yaml:"variables"`
+	Commands        []Command              `yaml:"commands"`
+	VarMap          map[string]interface{} `yaml:"-"`
+	Dir             string                 `yaml:"-"`
+	IncludedConfigs []*Config              `yaml:"-"`
+	IsIncluded      bool                   `yaml:"-"`
 }
 
 type Variable struct {

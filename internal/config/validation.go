@@ -30,6 +30,13 @@ func validateConfig(config *Config) error {
 		return fmt.Errorf("invalid namespace '%s': must start with letter and contain only letters, numbers, hyphens, and underscores", config.Namespace)
 	}
 
+	// Validate includes
+	for i, inc := range config.Includes {
+		if inc == "" {
+			return fmt.Errorf("include %d: path cannot be empty", i)
+		}
+	}
+
 	// Must have at least one command
 	if len(config.Commands) == 0 {
 		return fmt.Errorf("config must have at least one command")

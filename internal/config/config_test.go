@@ -15,6 +15,7 @@ func TestLoadValidConfigs(t *testing.T) {
 		{"Minimal config", "testdata/valid/minimal.yaml"},
 		{"All features", "testdata/valid/with_all_features.yaml"},
 		{"With namespace", "testdata/valid/with_namespace.yaml"},
+		{"With includes", "testdata/valid/with_includes/Kookfile"},
 	}
 
 	for _, tt := range tests {
@@ -129,6 +130,84 @@ func TestVarMapBuilding(t *testing.T) {
 		if actualValue != expectedValue {
 			t.Errorf("Expected VarMap[%s] = %s, got: %v", name, expectedValue, actualValue)
 		}
+	}
+}
+
+// Test that includes are loaded correctly
+func TestIncludesLoading(t *testing.T) {
+	cfg, err := Load("testdata/valid/with_includes/Kookfile")
+	if err != nil {
+		t.Fatalf("Failed to load config: %v", err)
+	}
+
+	if len(cfg.IncludedConfigs) != 1 {
+		t.Fatalf("Expected 1 included config, got %d", len(cfg.IncludedConfigs))
+	}
+
+	included := cfg.IncludedConfigs[0]
+	if included.Namespace != "cms" {
+		t.Errorf("Expected included namespace 'cms', got '%s'", included.Namespace)
+	}
+	if !included.IsIncluded {
+		t.Error("Expected IsIncluded to be true")
+	}
+	if included.Dir == "" {
+		t.Error("Expected Dir to be populated for included config")
+	}
+	if len(included.Commands) != 1 || included.Commands[0].Name != "deploy" {
+		t.Errorf("Expected included command 'deploy', got %+v", included.Commands)
+	}
+}
+
+// Test that includes of includes are not processed (one level only)
+func TestIncludesAreNotRecursive(t *testing.T) {
+	cfg, err := Load("testdata/valid/with_includes/Kookfile")
+	if err != nil {
+		t.Fatalf("Failed to load config: %v", err)
+	}
+
+	for _, inc := range cfg.IncludedConfigs {
+		if len(inc.IncludedConfigs) != 0 {
+			t.Error("Expected included configs to not have their own includes processed")
+		}
+	}
+}
+
+// Test invalid includes
+func TestInvalidIncludes(t *testing.T) {
+	tests := []struct {
+		name        string
+		filename    string
+		expectError string
+	}{
+		{
+			name:        "Included Kookfile missing namespace",
+			filename:    "testdata/invalid/includes/root_missing_namespace.yaml",
+			expectError: "must define a namespace",
+		},
+		{
+			name:        "Duplicate namespace between root and include",
+			filename:    "testdata/invalid/includes/root_duplicate_namespace.yaml",
+			expectError: "already used",
+		},
+		{
+			name:        "Non-existent include path",
+			filename:    "testdata/invalid/includes/root_nonexistent.yaml",
+			expectError: "not found",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := Load(tt.filename)
+			if err == nil {
+				t.Errorf("Expected error containing '%s', got no error", tt.expectError)
+				return
+			}
+			if !strings.Contains(err.Error(), tt.expectError) {
+				t.Errorf("Expected error containing '%s', got: %v", tt.expectError, err)
+			}
+		})
 	}
 }
 

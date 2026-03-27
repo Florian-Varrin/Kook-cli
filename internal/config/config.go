@@ -40,8 +40,46 @@ func FindAndLoad() (*Config, error) {
 	return nil, fmt.Errorf("no %s found in current directory or parent directories", ConfigFileName)
 }
 
-// Load reads and parses a Kookfile with validation
+// Load reads and parses a Kookfile, including any declared includes (one level deep).
 func Load(filename string) (*Config, error) {
+	cfg, err := loadFile(filename)
+	if err != nil {
+		return nil, err
+	}
+
+	namespaces := map[string]bool{}
+	if cfg.Namespace != "" {
+		namespaces[cfg.Namespace] = true
+	}
+
+	for _, includePath := range cfg.Includes {
+		kookfilePath, err := resolveIncludePath(cfg.Dir, includePath)
+		if err != nil {
+			return nil, fmt.Errorf("include '%s': %w", includePath, err)
+		}
+
+		included, err := loadFile(kookfilePath)
+		if err != nil {
+			return nil, fmt.Errorf("include '%s': %w", includePath, err)
+		}
+
+		if included.Namespace == "" {
+			return nil, fmt.Errorf("include '%s': included Kookfile must define a namespace", includePath)
+		}
+		if namespaces[included.Namespace] {
+			return nil, fmt.Errorf("include '%s': namespace '%s' is already used", includePath, included.Namespace)
+		}
+		namespaces[included.Namespace] = true
+
+		included.IsIncluded = true
+		cfg.IncludedConfigs = append(cfg.IncludedConfigs, included)
+	}
+
+	return cfg, nil
+}
+
+// loadFile parses and validates a single Kookfile without processing its includes.
+func loadFile(filename string) (*Config, error) {
 	data, err := os.ReadFile(filename)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read config file: %w", err)
@@ -51,28 +89,48 @@ func Load(filename string) (*Config, error) {
 		return nil, fmt.Errorf("config file is empty")
 	}
 
-	var config Config
-	if err := yaml.Unmarshal(data, &config); err != nil {
+	var cfg Config
+	if err := yaml.Unmarshal(data, &cfg); err != nil {
 		return nil, fmt.Errorf("failed to parse YAML: %w", err)
 	}
 
-	// Validate the config
-	if err := validateConfig(&config); err != nil {
+	if err := validateConfig(&cfg); err != nil {
 		return nil, err
 	}
 
-	// Store the directory containing the Kookfile
 	absPath, err := filepath.Abs(filename)
 	if err != nil {
 		return nil, fmt.Errorf("failed to resolve config path: %w", err)
 	}
-	config.Dir = filepath.Dir(absPath)
+	cfg.Dir = filepath.Dir(absPath)
 
-	// Build variable map for template access
-	config.VarMap = make(map[string]interface{})
-	for _, v := range config.Variables {
-		config.VarMap[v.Name] = v.Value
+	cfg.VarMap = make(map[string]interface{})
+	for _, v := range cfg.Variables {
+		cfg.VarMap[v.Name] = v.Value
 	}
 
-	return &config, nil
+	return &cfg, nil
+}
+
+// resolveIncludePath resolves an include path relative to baseDir.
+// If the path points to a directory, it looks for a Kookfile inside it.
+func resolveIncludePath(baseDir, includePath string) (string, error) {
+	if !filepath.IsAbs(includePath) {
+		includePath = filepath.Join(baseDir, includePath)
+	}
+
+	info, err := os.Stat(includePath)
+	if err != nil {
+		return "", fmt.Errorf("path not found: %s", includePath)
+	}
+
+	if info.IsDir() {
+		kookfilePath := filepath.Join(includePath, ConfigFileName)
+		if _, err := os.Stat(kookfilePath); err != nil {
+			return "", fmt.Errorf("no Kookfile found in directory '%s'", includePath)
+		}
+		return kookfilePath, nil
+	}
+
+	return includePath, nil
 }

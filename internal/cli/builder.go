@@ -26,9 +26,16 @@ func Execute(version string) error {
 		return fmt.Errorf("failed to load config: %w", err)
 	}
 
-	// Add all commands from config
+	// Add root commands
 	for _, cmd := range cfg.Commands {
 		rootCmd.AddCommand(buildCommand(cfg, cmd, cfg.Namespace))
+	}
+
+	// Add commands from included configs
+	for _, includedCfg := range cfg.IncludedConfigs {
+		for _, cmd := range includedCfg.Commands {
+			rootCmd.AddCommand(buildCommand(includedCfg, cmd, includedCfg.Namespace))
+		}
 	}
 
 	return rootCmd.Execute()
@@ -43,55 +50,58 @@ dynamic script generation.`
 
 	cfg, _ := config.FindAndLoad()
 	if cfg != nil && cfg.Namespace != "" {
-		long += fmt.Sprintf("\n\nNamespace: %s\nAll commands are also available as \"%s:<command>\".", cfg.Namespace, cfg.Namespace)
+		long += fmt.Sprintf("\n\nNamespace: %s\nCommands are listed as \"%s:<command>\" but also available without the namespace prefix.", cfg.Namespace, cfg.Namespace)
+	}
+	if cfg != nil {
+		for _, inc := range cfg.IncludedConfigs {
+			long += fmt.Sprintf("\n\nNamespace: %s (included)\nCommands available as \"%s:<command>\".", inc.Namespace, inc.Namespace)
+		}
 	}
 
 	rootCmd := &cobra.Command{
 		Use:     "kook",
 		Short:   "A simple CLI tool configured via Kookfile",
 		Long:    long,
-		Version: version, // Set version here
+		Version: version,
 		ValidArgsFunction: func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-			// Dynamic completion: load current directory's Kookfile
 			cfg, err := config.FindAndLoad()
 			if err != nil {
 				return nil, cobra.ShellCompDirectiveNoFileComp
 			}
 
 			var completions []string
-			for _, c := range cfg.Commands {
-				if c.Description != "" {
-					completions = append(completions, fmt.Sprintf("%s\t%s", c.Name, c.Description))
+
+			addEntry := func(name, description string) {
+				if description != "" {
+					completions = append(completions, fmt.Sprintf("%s\t%s", name, description))
 				} else {
-					completions = append(completions, c.Name)
+					completions = append(completions, name)
 				}
+			}
 
-				for _, alias := range c.Aliases {
-					if c.Description != "" {
-						completions = append(completions, fmt.Sprintf("%s\t%s", alias, c.Description))
-					} else {
-						completions = append(completions, alias)
+			addCommandCompletions := func(commands []config.Command, namespace string, isIncluded bool) {
+				for _, c := range commands {
+					if namespace != "" {
+						addEntry(fmt.Sprintf("%s:%s", namespace, c.Name), c.Description)
+						for _, alias := range c.Aliases {
+							addEntry(fmt.Sprintf("%s:%s", namespace, alias), c.Description)
+						}
 					}
-				}
-
-				if cfg.Namespace != "" {
-					namespacedName := fmt.Sprintf("%s:%s", cfg.Namespace, c.Name)
-					if c.Description != "" {
-						completions = append(completions, fmt.Sprintf("%s\t%s", namespacedName, c.Description))
-					} else {
-						completions = append(completions, namespacedName)
-					}
-
-					for _, alias := range c.Aliases {
-						namespacedAlias := fmt.Sprintf("%s:%s", cfg.Namespace, alias)
-						if c.Description != "" {
-							completions = append(completions, fmt.Sprintf("%s\t%s", namespacedAlias, c.Description))
-						} else {
-							completions = append(completions, namespacedAlias)
+					// Bare names only for root commands
+					if !isIncluded {
+						addEntry(c.Name, c.Description)
+						for _, alias := range c.Aliases {
+							addEntry(alias, c.Description)
 						}
 					}
 				}
 			}
+
+			addCommandCompletions(cfg.Commands, cfg.Namespace, false)
+			for _, includedCfg := range cfg.IncludedConfigs {
+				addCommandCompletions(includedCfg.Commands, includedCfg.Namespace, true)
+			}
+
 			return completions, cobra.ShellCompDirectiveNoFileComp
 		},
 	}
@@ -102,17 +112,32 @@ dynamic script generation.`
 }
 
 func buildCommand(cfg *config.Config, cmd config.Command, namespace string) *cobra.Command {
-	aliases := make([]string, len(cmd.Aliases))
-	copy(aliases, cmd.Aliases)
-	if namespace != "" {
-		aliases = append(aliases, fmt.Sprintf("%s:%s", namespace, cmd.Name))
+	var use string
+	var aliases []string
+
+	if cfg.IsIncluded {
+		// Included commands: only accessible via namespace prefix.
+		use = fmt.Sprintf("%s:%s", namespace, cmd.Name)
 		for _, alias := range cmd.Aliases {
 			aliases = append(aliases, fmt.Sprintf("%s:%s", namespace, alias))
 		}
+	} else if namespace != "" {
+		// Root commands with namespace: primary name is namespaced, bare names are aliases.
+		use = fmt.Sprintf("%s:%s", namespace, cmd.Name)
+		aliases = append(aliases, cmd.Name)
+		for _, alias := range cmd.Aliases {
+			aliases = append(aliases, alias)
+			aliases = append(aliases, fmt.Sprintf("%s:%s", namespace, alias))
+		}
+	} else {
+		// Root commands without namespace.
+		use = cmd.Name
+		aliases = make([]string, len(cmd.Aliases))
+		copy(aliases, cmd.Aliases)
 	}
 
 	cobraCmd := &cobra.Command{
-		Use:     cmd.Name,
+		Use:     use,
 		Aliases: aliases,
 		Short:   cmd.Description,
 		Long:    cmd.Help,

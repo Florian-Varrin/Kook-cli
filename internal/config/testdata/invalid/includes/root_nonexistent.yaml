@@ -1,0 +1,6 @@
+version: 1
+includes:
+  - ./does_not_exist
+commands:
+  - name: root-cmd
+    script: echo "root"
