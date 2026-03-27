@@ -1,0 +1,7 @@
+version: 1
+includes:
+  - ./cms
+commands:
+  - name: root-cmd
+    description: A root command
+    script: echo "root"
