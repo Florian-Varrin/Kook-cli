@@ -97,24 +97,6 @@ curl -L https://github.com/Florian-Varrin/Kook-cli/releases/latest/download/kook
 sudo mv kook /usr/local/bin/
 ```
 
-### Windows
-
-1. Download the latest Windows release from [releases page](https://github.com/Florian-Varrin/Kook-cli/releases)
-2. Extract the `.zip` file
-3. Move `kook.exe` to a directory in your PATH
-
-Or use PowerShell:
-```powershell
-# Download (replace <version> with actual version number)
-Invoke-WebRequest -Uri "https://github.com/Florian-Varrin/Kook-cli/releases/latest/download/kook_<version>_windows_amd64.zip" -OutFile "kook.zip"
-
-# Extract
-Expand-Archive -Path kook.zip -DestinationPath .
-
-# Move to a directory in your PATH (example)
-Move-Item kook.exe C:\Windows\System32\
-```
-
 ### From Source
 
 ```bash
