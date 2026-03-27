@@ -4,9 +4,11 @@ import "strings"
 
 type Config struct {
 	Version   int                    `yaml:"version"`
+	Namespace string                 `yaml:"namespace,omitempty"`
 	Variables []Variable             `yaml:"variables"`
 	Commands  []Command              `yaml:"commands"`
 	VarMap    map[string]interface{} `yaml:"-"`
+	Dir       string                 `yaml:"-"`
 }
 
 type Variable struct {

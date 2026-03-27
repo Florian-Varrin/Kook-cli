@@ -25,6 +25,11 @@ func validateConfig(config *Config) error {
 		return fmt.Errorf("unsupported config version: %d (expected 1)", config.Version)
 	}
 
+	// Validate namespace if provided
+	if config.Namespace != "" && !validNamePattern.MatchString(config.Namespace) {
+		return fmt.Errorf("invalid namespace '%s': must start with letter and contain only letters, numbers, hyphens, and underscores", config.Namespace)
+	}
+
 	// Must have at least one command
 	if len(config.Commands) == 0 {
 		return fmt.Errorf("config must have at least one command")

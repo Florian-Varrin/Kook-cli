@@ -28,21 +28,28 @@ func Execute(version string) error {
 
 	// Add all commands from config
 	for _, cmd := range cfg.Commands {
-		rootCmd.AddCommand(buildCommand(cfg, cmd))
+		rootCmd.AddCommand(buildCommand(cfg, cmd, cfg.Namespace))
 	}
 
 	return rootCmd.Execute()
 }
 
 func buildRootCommand(version string) *cobra.Command {
-	rootCmd := &cobra.Command{
-		Use:   "kook",
-		Short: "A simple CLI tool configured via Kookfile",
-		Long: `Kook is a task runner that reads commands from a Kookfile.
+	long := `Kook is a task runner that reads commands from a Kookfile.
 
 Each project can have its own Kookfile with custom commands,
 options, and variables. Commands support Go templates for
-dynamic script generation.`,
+dynamic script generation.`
+
+	cfg, _ := config.FindAndLoad()
+	if cfg != nil && cfg.Namespace != "" {
+		long += fmt.Sprintf("\n\nNamespace: %s\nAll commands are also available as \"%s:<command>\".", cfg.Namespace, cfg.Namespace)
+	}
+
+	rootCmd := &cobra.Command{
+		Use:     "kook",
+		Short:   "A simple CLI tool configured via Kookfile",
+		Long:    long,
 		Version: version, // Set version here
 		ValidArgsFunction: func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 			// Dynamic completion: load current directory's Kookfile
@@ -66,6 +73,24 @@ dynamic script generation.`,
 						completions = append(completions, alias)
 					}
 				}
+
+				if cfg.Namespace != "" {
+					namespacedName := fmt.Sprintf("%s:%s", cfg.Namespace, c.Name)
+					if c.Description != "" {
+						completions = append(completions, fmt.Sprintf("%s\t%s", namespacedName, c.Description))
+					} else {
+						completions = append(completions, namespacedName)
+					}
+
+					for _, alias := range c.Aliases {
+						namespacedAlias := fmt.Sprintf("%s:%s", cfg.Namespace, alias)
+						if c.Description != "" {
+							completions = append(completions, fmt.Sprintf("%s\t%s", namespacedAlias, c.Description))
+						} else {
+							completions = append(completions, namespacedAlias)
+						}
+					}
+				}
 			}
 			return completions, cobra.ShellCompDirectiveNoFileComp
 		},
@@ -76,10 +101,19 @@ dynamic script generation.`,
 	return rootCmd
 }
 
-func buildCommand(cfg *config.Config, cmd config.Command) *cobra.Command {
+func buildCommand(cfg *config.Config, cmd config.Command, namespace string) *cobra.Command {
+	aliases := make([]string, len(cmd.Aliases))
+	copy(aliases, cmd.Aliases)
+	if namespace != "" {
+		aliases = append(aliases, fmt.Sprintf("%s:%s", namespace, cmd.Name))
+		for _, alias := range cmd.Aliases {
+			aliases = append(aliases, fmt.Sprintf("%s:%s", namespace, alias))
+		}
+	}
+
 	cobraCmd := &cobra.Command{
 		Use:     cmd.Name,
-		Aliases: cmd.Aliases,
+		Aliases: aliases,
 		Short:   cmd.Description,
 		Long:    cmd.Help,
 		RunE: func(cobraCmd *cobra.Command, args []string) error {

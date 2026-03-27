@@ -14,6 +14,7 @@ func TestLoadValidConfigs(t *testing.T) {
 		{"Complete config", "testdata/valid/complete.yaml"},
 		{"Minimal config", "testdata/valid/minimal.yaml"},
 		{"All features", "testdata/valid/with_all_features.yaml"},
+		{"With namespace", "testdata/valid/with_namespace.yaml"},
 	}
 
 	for _, tt := range tests {
@@ -128,6 +129,22 @@ func TestVarMapBuilding(t *testing.T) {
 		if actualValue != expectedValue {
 			t.Errorf("Expected VarMap[%s] = %s, got: %v", name, expectedValue, actualValue)
 		}
+	}
+}
+
+// Test that Namespace is loaded and Dir is populated
+func TestNamespaceAndDirLoading(t *testing.T) {
+	cfg, err := Load("testdata/valid/with_namespace.yaml")
+	if err != nil {
+		t.Fatalf("Failed to load config: %v", err)
+	}
+
+	if cfg.Namespace != "cms" {
+		t.Errorf("Expected namespace 'cms', got '%s'", cfg.Namespace)
+	}
+
+	if cfg.Dir == "" {
+		t.Error("Expected Dir to be populated")
 	}
 }
 

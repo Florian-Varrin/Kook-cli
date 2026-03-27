@@ -1,0 +1,6 @@
+version: 1
+namespace: cms
+commands:
+  - name: start
+    description: Start the application
+    script: echo "start"

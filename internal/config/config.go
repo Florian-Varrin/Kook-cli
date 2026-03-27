@@ -61,6 +61,13 @@ func Load(filename string) (*Config, error) {
 		return nil, err
 	}
 
+	// Store the directory containing the Kookfile
+	absPath, err := filepath.Abs(filename)
+	if err != nil {
+		return nil, fmt.Errorf("failed to resolve config path: %w", err)
+	}
+	config.Dir = filepath.Dir(absPath)
+
 	// Build variable map for template access
 	config.VarMap = make(map[string]interface{})
 	for _, v := range config.Variables {
