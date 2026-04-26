@@ -182,6 +182,41 @@ func TestDuplicateAliases(t *testing.T) {
 	}
 }
 
+// Test namespace validation
+func TestNamespaceValidation(t *testing.T) {
+	tests := []struct {
+		namespace string
+		valid     bool
+	}{
+		{"cms", true},
+		{"my-app", true},
+		{"my_app", true},
+		{"App1", true},
+		{"", true},            // empty is ok (optional)
+		{"123invalid", false}, // must start with letter
+		{"invalid ns", false}, // no spaces
+		{"invalid@ns", false}, // no special chars
+	}
+
+	for _, tt := range tests {
+		t.Run("Namespace: "+tt.namespace, func(t *testing.T) {
+			cfg := &Config{
+				Version:   1,
+				Namespace: tt.namespace,
+				Commands:  []Command{{Name: "test", Script: "echo test"}},
+			}
+			err := validateConfig(cfg)
+
+			if tt.valid && err != nil {
+				t.Errorf("Expected namespace '%s' to be valid, got error: %v", tt.namespace, err)
+			}
+			if !tt.valid && err == nil {
+				t.Errorf("Expected namespace '%s' to be invalid, got no error", tt.namespace)
+			}
+		})
+	}
+}
+
 func TestDuplicateShorthands(t *testing.T) {
 	cmd := Command{
 		Name: "test",

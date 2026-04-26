@@ -1,0 +1,7 @@
+version: 1
+namespace: cms
+includes:
+  - ./duplicate_namespace
+commands:
+  - name: root-cmd
+    script: echo "root"

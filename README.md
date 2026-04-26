@@ -8,6 +8,8 @@ A simple, powerful CLI task runner configured via `Kookfile`. Think of it as `Ju
 - **Template-driven**: Use Go templates to create dynamic commands based on options and variables
 - **Type-safe options**: Define boolean, string, integer, and float options with validation
 - **Interactive mode**: Use `--interactive` flag to get prompted for options with a user-friendly interface
+- **Namespace support**: Prefix commands with a namespace for clarity and to avoid conflicts
+- **Composable via includes**: Include other Kookfiles and call their commands by namespace
 - **Auto-completion**: Smart shell completion that adapts to each project's `Kookfile`
 - **IDE support**: JSON Schema for auto-completion and validation in VS Code, JetBrains IDEs, and more
 - **Zero config**: Just drop a `Kookfile` in your project and you're ready to go
@@ -93,24 +95,6 @@ sudo mv kook /usr/local/bin/
 # For Apple Silicon (M1/M2/M3)
 curl -L https://github.com/Florian-Varrin/Kook-cli/releases/latest/download/kook_<version>_darwin_arm64.tar.gz | tar xz
 sudo mv kook /usr/local/bin/
-```
-
-### Windows
-
-1. Download the latest Windows release from [releases page](https://github.com/Florian-Varrin/Kook-cli/releases)
-2. Extract the `.zip` file
-3. Move `kook.exe` to a directory in your PATH
-
-Or use PowerShell:
-```powershell
-# Download (replace <version> with actual version number)
-Invoke-WebRequest -Uri "https://github.com/Florian-Varrin/Kook-cli/releases/latest/download/kook_<version>_windows_amd64.zip" -OutFile "kook.zip"
-
-# Extract
-Expand-Archive -Path kook.zip -DestinationPath .
-
-# Move to a directory in your PATH (example)
-Move-Item kook.exe C:\Windows\System32\
 ```
 
 ### From Source
@@ -285,6 +269,9 @@ Executing: kubectl set image deployment/app app=v1.2.3 -n production
 
 ```yaml
 version: 1              # Required: config version (only "1" supported)
+namespace: myapp        # Optional: namespace prefix for commands
+includes:               # Optional: other Kookfiles to include
+  - ./other-service
 
 variables:              # Optional: global variables
   - name: var_name
@@ -366,6 +353,109 @@ options:
     - `--dry-run` with `var: dryRun` → `.dryRun` (explicit)
 - Shorthand must be a single letter (e.g., `d`, `v`, `e`)
 - Reserved shorthands: `-h` (help), `-i` (interactive)
+
+### Namespace
+
+A `namespace` can be declared at the root of a Kookfile. When set, commands appear in the help output prefixed with the namespace (`cms:start`) but remain callable both with and without the prefix.
+
+```yaml
+version: 1
+namespace: cms
+
+commands:
+  - name: start
+    description: Start the application
+    script: docker compose up -d
+```
+
+```bash
+kook cms:start      # with namespace prefix
+kook start          # also works
+kook cms:up      # aliases work with namespace too
+```
+
+The help output reflects this:
+
+```
+Available Commands:
+  cms:start    Start the application
+  cms:stop     Stop the application
+  ...
+
+Namespace: cms
+Commands are listed as "cms:<command>" but also available without the namespace prefix.
+```
+
+### Includes
+
+A Kookfile can include other Kookfiles using the `includes` key. Each included Kookfile **must define a `namespace`** — its commands are then accessible as `namespace:command`.
+
+```yaml
+# Root Kookfile
+version: 1
+namespace: cms
+
+includes:
+  - ./sso             # directory containing a Kookfile
+  - ./website/Kookfile    # or a direct path to the file
+
+commands:
+  - name: start-all
+    description: Start all services
+    script: |
+      $KOOK cms:start
+      $KOOK sso:start
+      $KOOK website:start
+```
+
+```yaml
+# sso/Kookfile
+version: 1
+namespace: sso
+
+commands:
+  - name: start
+    description: Start the SSO service
+    aliases:
+      - up
+    script: docker compose up -d
+```
+
+```bash
+kook sso:start    # runs the SSO start command
+kook sso:up       # aliases work too
+kook cms:start    # root commands still work as usual
+```
+
+**Key behaviours:**
+
+- Included commands are **only** accessible via their namespace prefix — bare `start` resolves to the root Kookfile only
+- Scripts from included Kookfiles run from **the directory of the included Kookfile**, not the caller's working directory
+- Only **one level of includes** is supported — if an included Kookfile has its own `includes`, they are ignored. Reference the third Kookfile directly in the root if needed
+- Namespace collisions (two includes with the same namespace, or an include matching the root namespace) are a load-time error
+
+### Calling Kook Commands from Scripts (`$KOOK`)
+
+When writing scripts that call other kook commands, use the `$KOOK` environment variable instead of hardcoding `kook`. Kook automatically sets `$KOOK` to the path of the currently running binary, so it works correctly regardless of how the binary is named or installed (`kook`, `kook-dev`, `kook-staging`, etc.).
+
+```yaml
+commands:
+  - name: start-all
+    description: Start all services
+    script: |
+      $KOOK cms:start
+      $KOOK sso:start --no-wait
+
+  - name: restart-all
+    description: Restart all services
+    script: |
+      $KOOK cms:stop
+      $KOOK sso:stop
+      $KOOK cms:start
+      $KOOK sso:start
+```
+
+This is especially useful in root Kookfiles that orchestrate commands across multiple included Kookfiles.
 
 ### Templates
 
