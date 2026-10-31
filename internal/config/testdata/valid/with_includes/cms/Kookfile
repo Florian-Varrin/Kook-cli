@@ -1,0 +1,8 @@
+version: 1
+namespace: cms
+commands:
+  - name: deploy
+    description: Deploy CMS
+    aliases:
+      - d
+    script: echo "deploy"

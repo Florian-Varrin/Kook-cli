@@ -1,0 +1,6 @@
+version: 1
+includes:
+  - ./missing_namespace
+commands:
+  - name: root-cmd
+    script: echo "root"

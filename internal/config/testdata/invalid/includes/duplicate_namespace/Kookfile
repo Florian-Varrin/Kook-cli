@@ -1,0 +1,5 @@
+version: 1
+namespace: cms
+commands:
+  - name: deploy
+    script: echo "deploy"
