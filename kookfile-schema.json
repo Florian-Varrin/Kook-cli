@@ -10,6 +10,18 @@
       "description": "Config version (only 1 is supported)",
       "const": 1
     },
+    "namespace": {
+      "type": "string",
+      "description": "Optional namespace prefix for commands (e.g. 'cms' allows running 'kook cms:start' in addition to 'kook start')",
+      "pattern": "^[a-zA-Z][a-zA-Z0-9_-]*$"
+    },
+    "includes": {
+      "type": "array",
+      "description": "Paths to other Kookfiles (or directories containing them) to include. Included Kookfiles must define a namespace.",
+      "items": {
+        "type": "string"
+      }
+    },
     "variables": {
       "type": "array",
       "description": "Global variables accessible in all commands",
