@@ -434,7 +434,11 @@ includes:
   - ./sso                      # visible
   - path: /etc/kook/docker     # hidden helpers
     hidden: true
+  - path: ./ai                 # only ai:staging:* listed
+    only: ["staging:*"]
 ```
+
+`only` takes glob patterns matched against command names without the namespace. Non-matching commands are hidden the same way. A pattern that matches no command is a load-time error, and `only` cannot be combined with `hidden`.
 
 **Key behaviours:**
 

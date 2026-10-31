@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"path"
 	"strings"
 
 	"gopkg.in/yaml.v3"
@@ -18,12 +19,39 @@ type Config struct {
 	IncludedConfigs []*Config              `yaml:"-"`
 	IsIncluded      bool                   `yaml:"-"`
 	Hidden          bool                   `yaml:"-"`
+	Only            []string               `yaml:"-"`
 }
 
-// Include accepts either a plain path or a {path, hidden} mapping.
+// IsCommandHidden reports whether a command is left out of help and completion.
+func (c *Config) IsCommandHidden(name string) bool {
+	if c.Hidden {
+		return true
+	}
+	if len(c.Only) == 0 {
+		return false
+	}
+	for _, pattern := range c.Only {
+		if matched, _ := path.Match(pattern, name); matched {
+			return false
+		}
+	}
+	return true
+}
+
+func (c *Config) HasVisibleCommands() bool {
+	for _, cmd := range c.Commands {
+		if !c.IsCommandHidden(cmd.Name) {
+			return true
+		}
+	}
+	return false
+}
+
+// Include accepts either a plain path or a {path, hidden, only} mapping.
 type Include struct {
-	Path   string `yaml:"path"`
-	Hidden bool   `yaml:"hidden"`
+	Path   string   `yaml:"path"`
+	Hidden bool     `yaml:"hidden"`
+	Only   []string `yaml:"only"`
 }
 
 func (i *Include) UnmarshalYAML(node *yaml.Node) error {
@@ -34,7 +62,7 @@ func (i *Include) UnmarshalYAML(node *yaml.Node) error {
 		type plain Include
 		return node.Decode((*plain)(i))
 	default:
-		return fmt.Errorf("line %d: include must be a path or a {path, hidden} mapping", node.Line)
+		return fmt.Errorf("line %d: include must be a path or a {path, hidden, only} mapping", node.Line)
 	}
 }
 

@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"os"
+	"path"
 	"path/filepath"
 
 	"gopkg.in/yaml.v3"
@@ -71,12 +72,42 @@ func Load(filename string) (*Config, error) {
 		}
 		namespaces[included.Namespace] = true
 
+		if err := validateOnly(inc, included); err != nil {
+			return nil, fmt.Errorf("include '%s': %w", inc.Path, err)
+		}
+
 		included.IsIncluded = true
 		included.Hidden = inc.Hidden
+		included.Only = inc.Only
 		cfg.IncludedConfigs = append(cfg.IncludedConfigs, included)
 	}
 
 	return cfg, nil
+}
+
+// validateOnly rejects malformed patterns and patterns matching no command, so typos don't silently hide everything.
+func validateOnly(inc Include, included *Config) error {
+	if len(inc.Only) > 0 && inc.Hidden {
+		return fmt.Errorf("'only' and 'hidden' cannot be combined")
+	}
+
+	for _, pattern := range inc.Only {
+		matchedAny := false
+		for _, cmd := range included.Commands {
+			matched, err := path.Match(pattern, cmd.Name)
+			if err != nil {
+				return fmt.Errorf("invalid 'only' pattern '%s': %w", pattern, err)
+			}
+			if matched {
+				matchedAny = true
+			}
+		}
+		if !matchedAny {
+			return fmt.Errorf("'only' pattern '%s' matches no command", pattern)
+		}
+	}
+
+	return nil
 }
 
 // loadFile parses and validates a single Kookfile without processing its includes.

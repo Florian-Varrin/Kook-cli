@@ -37,6 +37,13 @@
                 "type": "boolean",
                 "description": "Hide included commands from help and completion (they stay runnable)",
                 "default": false
+              },
+              "only": {
+                "type": "array",
+                "description": "Glob patterns of command names (without namespace) to keep visible; others are hidden but stay runnable. Cannot be combined with hidden",
+                "items": {
+                  "type": "string"
+                }
               }
             }
           }

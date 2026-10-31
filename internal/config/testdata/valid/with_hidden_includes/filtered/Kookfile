@@ -1,0 +1,11 @@
+version: 1
+namespace: filtered
+commands:
+  - name: start
+    script: echo "start"
+  - name: staging:start
+    script: echo "staging start"
+  - name: staging:stop
+    script: echo "staging stop"
+  - name: shell
+    script: echo "shell"

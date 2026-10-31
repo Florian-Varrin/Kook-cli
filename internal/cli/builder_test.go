@@ -31,3 +31,15 @@ func TestBuildCommandHiddenInclude(t *testing.T) {
 		})
 	}
 }
+
+func TestBuildCommandOnlyInclude(t *testing.T) {
+	cfg := &config.Config{Namespace: "sso", IsIncluded: true, Only: []string{"staging:*"}}
+
+	tests := map[string]bool{"staging:start": false, "shell": true}
+	for name, hidden := range tests {
+		cobraCmd := buildCommand(cfg, config.Command{Name: name, Script: "echo"}, cfg.Namespace)
+		if cobraCmd.Hidden != hidden {
+			t.Errorf("Expected Hidden=%v for '%s', got %v", hidden, name, cobraCmd.Hidden)
+		}
+	}
+}

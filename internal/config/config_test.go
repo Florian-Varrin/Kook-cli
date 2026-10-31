@@ -180,11 +180,11 @@ func TestHiddenIncludesLoading(t *testing.T) {
 		t.Fatalf("Failed to load config: %v", err)
 	}
 
-	if len(cfg.IncludedConfigs) != 2 {
-		t.Fatalf("Expected 2 included configs, got %d", len(cfg.IncludedConfigs))
+	if len(cfg.IncludedConfigs) != 3 {
+		t.Fatalf("Expected 3 included configs, got %d", len(cfg.IncludedConfigs))
 	}
 
-	expected := map[string]bool{"visible": false, "hidden": true}
+	expected := map[string]bool{"visible": false, "hidden": true, "filtered": false}
 	for _, inc := range cfg.IncludedConfigs {
 		hidden, ok := expected[inc.Namespace]
 		if !ok {
@@ -193,6 +193,36 @@ func TestHiddenIncludesLoading(t *testing.T) {
 		}
 		if inc.Hidden != hidden {
 			t.Errorf("Expected Hidden=%v for '%s', got %v", hidden, inc.Namespace, inc.Hidden)
+		}
+	}
+}
+
+// Test that only patterns hide non-matching commands of an include
+func TestOnlyIncludeFilter(t *testing.T) {
+	cfg, err := Load("testdata/valid/with_hidden_includes/Kookfile")
+	if err != nil {
+		t.Fatalf("Failed to load config: %v", err)
+	}
+
+	var filtered *Config
+	for _, inc := range cfg.IncludedConfigs {
+		if inc.Namespace == "filtered" {
+			filtered = inc
+		}
+	}
+	if filtered == nil {
+		t.Fatal("Expected 'filtered' include")
+	}
+
+	tests := map[string]bool{
+		"start":         false,
+		"staging:start": false,
+		"staging:stop":  false,
+		"shell":         true,
+	}
+	for name, hidden := range tests {
+		if filtered.IsCommandHidden(name) != hidden {
+			t.Errorf("Expected IsCommandHidden(%s)=%v", name, hidden)
 		}
 	}
 }
@@ -218,6 +248,21 @@ func TestInvalidIncludes(t *testing.T) {
 			name:        "Non-existent include path",
 			filename:    "testdata/invalid/includes/root_nonexistent.yaml",
 			expectError: "not found",
+		},
+		{
+			name:        "Only pattern matching no command",
+			filename:    "testdata/invalid/includes/root_only_no_match.yaml",
+			expectError: "matches no command",
+		},
+		{
+			name:        "Malformed only pattern",
+			filename:    "testdata/invalid/includes/root_only_bad_pattern.yaml",
+			expectError: "invalid 'only' pattern",
+		},
+		{
+			name:        "Only combined with hidden",
+			filename:    "testdata/invalid/includes/root_only_and_hidden.yaml",
+			expectError: "cannot be combined",
 		},
 		{
 			name:        "Include mapping without path",
