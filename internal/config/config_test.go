@@ -173,6 +173,30 @@ func TestIncludesAreNotRecursive(t *testing.T) {
 	}
 }
 
+// Test that string and mapping includes load with their hidden flag
+func TestHiddenIncludesLoading(t *testing.T) {
+	cfg, err := Load("testdata/valid/with_hidden_includes/Kookfile")
+	if err != nil {
+		t.Fatalf("Failed to load config: %v", err)
+	}
+
+	if len(cfg.IncludedConfigs) != 2 {
+		t.Fatalf("Expected 2 included configs, got %d", len(cfg.IncludedConfigs))
+	}
+
+	expected := map[string]bool{"visible": false, "hidden": true}
+	for _, inc := range cfg.IncludedConfigs {
+		hidden, ok := expected[inc.Namespace]
+		if !ok {
+			t.Errorf("Unexpected included namespace '%s'", inc.Namespace)
+			continue
+		}
+		if inc.Hidden != hidden {
+			t.Errorf("Expected Hidden=%v for '%s', got %v", hidden, inc.Namespace, inc.Hidden)
+		}
+	}
+}
+
 // Test invalid includes
 func TestInvalidIncludes(t *testing.T) {
 	tests := []struct {
@@ -194,6 +218,11 @@ func TestInvalidIncludes(t *testing.T) {
 			name:        "Non-existent include path",
 			filename:    "testdata/invalid/includes/root_nonexistent.yaml",
 			expectError: "not found",
+		},
+		{
+			name:        "Include mapping without path",
+			filename:    "testdata/invalid/includes/root_missing_path.yaml",
+			expectError: "path cannot be empty",
 		},
 	}
 

@@ -427,6 +427,15 @@ kook sso:up       # aliases work too
 kook cms:start    # root commands still work as usual
 ```
 
+An include can also be written as a mapping. Set `hidden: true` to keep helper commands out of `kook --help` and shell completion; they stay runnable when typed or called through `$KOOK`:
+
+```yaml
+includes:
+  - ./sso                      # visible
+  - path: /etc/kook/docker     # hidden helpers
+    hidden: true
+```
+
 **Key behaviours:**
 
 - Included commands are **only** accessible via their namespace prefix — bare `start` resolves to the root Kookfile only

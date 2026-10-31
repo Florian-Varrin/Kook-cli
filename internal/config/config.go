@@ -52,26 +52,27 @@ func Load(filename string) (*Config, error) {
 		namespaces[cfg.Namespace] = true
 	}
 
-	for _, includePath := range cfg.Includes {
-		kookfilePath, err := resolveIncludePath(cfg.Dir, includePath)
+	for _, inc := range cfg.Includes {
+		kookfilePath, err := resolveIncludePath(cfg.Dir, inc.Path)
 		if err != nil {
-			return nil, fmt.Errorf("include '%s': %w", includePath, err)
+			return nil, fmt.Errorf("include '%s': %w", inc.Path, err)
 		}
 
 		included, err := loadFile(kookfilePath)
 		if err != nil {
-			return nil, fmt.Errorf("include '%s': %w", includePath, err)
+			return nil, fmt.Errorf("include '%s': %w", inc.Path, err)
 		}
 
 		if included.Namespace == "" {
-			return nil, fmt.Errorf("include '%s': included Kookfile must define a namespace", includePath)
+			return nil, fmt.Errorf("include '%s': included Kookfile must define a namespace", inc.Path)
 		}
 		if namespaces[included.Namespace] {
-			return nil, fmt.Errorf("include '%s': namespace '%s' is already used", includePath, included.Namespace)
+			return nil, fmt.Errorf("include '%s': namespace '%s' is already used", inc.Path, included.Namespace)
 		}
 		namespaces[included.Namespace] = true
 
 		included.IsIncluded = true
+		included.Hidden = inc.Hidden
 		cfg.IncludedConfigs = append(cfg.IncludedConfigs, included)
 	}
 

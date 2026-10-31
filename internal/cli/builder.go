@@ -54,6 +54,9 @@ dynamic script generation.`
 	}
 	if cfg != nil {
 		for _, inc := range cfg.IncludedConfigs {
+			if inc.Hidden {
+				continue
+			}
 			long += fmt.Sprintf("\n\nNamespace: %s (included)\nCommands available as \"%s:<command>\".", inc.Namespace, inc.Namespace)
 		}
 	}
@@ -99,6 +102,9 @@ dynamic script generation.`
 
 			addCommandCompletions(cfg.Commands, cfg.Namespace, false)
 			for _, includedCfg := range cfg.IncludedConfigs {
+				if includedCfg.Hidden {
+					continue
+				}
 				addCommandCompletions(includedCfg.Commands, includedCfg.Namespace, true)
 			}
 
@@ -141,6 +147,7 @@ func buildCommand(cfg *config.Config, cmd config.Command, namespace string) *cob
 		Aliases: aliases,
 		Short:   cmd.Description,
 		Long:    cmd.Help,
+		Hidden:  cfg.Hidden,
 		RunE: func(cobraCmd *cobra.Command, args []string) error {
 			interactive, _ := cobraCmd.Flags().GetBool("interactive")
 

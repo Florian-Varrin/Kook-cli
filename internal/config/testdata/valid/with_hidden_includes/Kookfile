@@ -1,0 +1,8 @@
+version: 1
+includes:
+  - ./visible
+  - path: ./hidden
+    hidden: true
+commands:
+  - name: root-cmd
+    script: echo "root"
