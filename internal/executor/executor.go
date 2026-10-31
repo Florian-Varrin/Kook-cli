@@ -58,10 +58,17 @@ func Execute(cfg *config.Config, cmd config.Command, cobraCmd *cobra.Command) er
 		bashCmd.Dir = cfg.Dir
 	}
 
+	bashCmd.Env = os.Environ()
+
 	// Expose the current kook binary path as $KOOK so scripts can call other kook commands
 	// reliably regardless of the binary name (kook, kook-dev, etc.)
 	if self, err := os.Executable(); err == nil {
-		bashCmd.Env = append(os.Environ(), "KOOK="+self)
+		bashCmd.Env = append(bashCmd.Env, "KOOK="+self)
+	}
+
+	// Included scripts run in their own directory, so expose where kook was invoked
+	if cwd, err := os.Getwd(); err == nil {
+		bashCmd.Env = append(bashCmd.Env, "KOOK_CALLER_DIR="+cwd)
 	}
 
 	return bashCmd.Run()

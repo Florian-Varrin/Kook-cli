@@ -134,6 +134,12 @@ func TestCommandNameValidation(t *testing.T) {
 		{"invalid name", false},
 		{"invalid@name", false},
 		{"123invalid", false},
+		{"staging:start", true},
+		{"aws:ecs:up", true},
+		{":start", false},
+		{"start:", false},
+		{"staging::start", false},
+		{"staging:1start", false},
 	}
 
 	for _, tt := range tests {
