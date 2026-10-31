@@ -286,7 +286,7 @@ commands:               # Required: your custom commands
 
 ```yaml
 commands:
-  - name: deploy                    # Required: command name
+  - name: deploy                    # Required: command name (':' allowed to group, e.g. staging:start)
     description: Deploy to env      # Optional: short one-line description
     help: |                         # Optional: long multi-line help text
       Detailed explanation of what this command does.
@@ -430,7 +430,7 @@ kook cms:start    # root commands still work as usual
 **Key behaviours:**
 
 - Included commands are **only** accessible via their namespace prefix — bare `start` resolves to the root Kookfile only
-- Scripts from included Kookfiles run from **the directory of the included Kookfile**, not the caller's working directory
+- Scripts from included Kookfiles run from **the directory of the included Kookfile**, not the caller's working directory. The caller's directory is available as `$KOOK_CALLER_DIR`
 - Only **one level of includes** is supported — if an included Kookfile has its own `includes`, they are ignored. Reference the third Kookfile directly in the root if needed
 - Namespace collisions (two includes with the same namespace, or an include matching the root namespace) are a load-time error
 
@@ -456,6 +456,18 @@ commands:
 ```
 
 This is especially useful in root Kookfiles that orchestrate commands across multiple included Kookfiles.
+
+Kook also sets `$KOOK_CALLER_DIR` to the directory kook was invoked from. Shared Kookfiles included by several projects use it to act on the calling project:
+
+```yaml
+# /etc/kook/docker/Kookfile
+version: 1
+namespace: docker
+
+commands:
+  - name: up
+    script: cd "$KOOK_CALLER_DIR" && docker compose up -d --remove-orphans
+```
 
 ### Templates
 

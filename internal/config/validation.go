@@ -7,6 +7,7 @@ import (
 
 var (
 	validNamePattern      = regexp.MustCompile(`^[a-zA-Z][a-zA-Z0-9_-]*$`)
+	validCommandPattern   = regexp.MustCompile(`^[a-zA-Z][a-zA-Z0-9_-]*(:[a-zA-Z][a-zA-Z0-9_-]*)*$`)
 	validShorthandPattern = regexp.MustCompile(`^[a-zA-Z]$`)
 	validVarPattern       = regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_]*$`)
 	reservedShorthands    = map[string]bool{"h": true, "i": true}
@@ -93,8 +94,8 @@ func validateCommand(cmd Command) error {
 		return fmt.Errorf("command name cannot be empty")
 	}
 
-	if !validNamePattern.MatchString(cmd.Name) {
-		return fmt.Errorf("invalid command name '%s': must start with letter and contain only letters, numbers, hyphens, and underscores", cmd.Name)
+	if !validCommandPattern.MatchString(cmd.Name) {
+		return fmt.Errorf("invalid command name '%s': must start with letter and contain only letters, numbers, hyphens, underscores, and ':' separators", cmd.Name)
 	}
 
 	if cmd.Script == "" {
@@ -103,8 +104,8 @@ func validateCommand(cmd Command) error {
 
 	// Validate aliases
 	for _, alias := range cmd.Aliases {
-		if !validNamePattern.MatchString(alias) {
-			return fmt.Errorf("invalid alias '%s': must start with letter and contain only letters, numbers, hyphens, and underscores", alias)
+		if !validCommandPattern.MatchString(alias) {
+			return fmt.Errorf("invalid alias '%s': must start with letter and contain only letters, numbers, hyphens, underscores, and ':' separators", alias)
 		}
 	}
 
