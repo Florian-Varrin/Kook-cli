@@ -1,0 +1,7 @@
+version: 1
+includes:
+  - path: ./only_target
+    only: ["staging:["]
+commands:
+  - name: root-cmd
+    script: echo "root"

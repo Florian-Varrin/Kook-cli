@@ -19,7 +19,35 @@
       "type": "array",
       "description": "Paths to other Kookfiles (or directories containing them) to include. Included Kookfiles must define a namespace.",
       "items": {
-        "type": "string"
+        "oneOf": [
+          {
+            "type": "string",
+            "description": "Path to a Kookfile or a directory containing one"
+          },
+          {
+            "type": "object",
+            "required": ["path"],
+            "additionalProperties": false,
+            "properties": {
+              "path": {
+                "type": "string",
+                "description": "Path to a Kookfile or a directory containing one"
+              },
+              "hidden": {
+                "type": "boolean",
+                "description": "Hide included commands from help and completion (they stay runnable)",
+                "default": false
+              },
+              "only": {
+                "type": "array",
+                "description": "Glob patterns of command names (without namespace) to keep visible; others are hidden but stay runnable. Cannot be combined with hidden",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        ]
       }
     },
     "variables": {

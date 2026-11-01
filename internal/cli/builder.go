@@ -54,6 +54,9 @@ dynamic script generation.`
 	}
 	if cfg != nil {
 		for _, inc := range cfg.IncludedConfigs {
+			if !inc.HasVisibleCommands() {
+				continue
+			}
 			long += fmt.Sprintf("\n\nNamespace: %s (included)\nCommands available as \"%s:<command>\".", inc.Namespace, inc.Namespace)
 		}
 	}
@@ -79,27 +82,31 @@ dynamic script generation.`
 				}
 			}
 
-			addCommandCompletions := func(commands []config.Command, namespace string, isIncluded bool) {
-				for _, c := range commands {
+			addCommandCompletions := func(c *config.Config) {
+				namespace := c.Namespace
+				for _, cmd := range c.Commands {
+					if c.IsCommandHidden(cmd.Name) {
+						continue
+					}
 					if namespace != "" {
-						addEntry(fmt.Sprintf("%s:%s", namespace, c.Name), c.Description)
-						for _, alias := range c.Aliases {
-							addEntry(fmt.Sprintf("%s:%s", namespace, alias), c.Description)
+						addEntry(fmt.Sprintf("%s:%s", namespace, cmd.Name), cmd.Description)
+						for _, alias := range cmd.Aliases {
+							addEntry(fmt.Sprintf("%s:%s", namespace, alias), cmd.Description)
 						}
 					}
 					// Bare names only for root commands
-					if !isIncluded {
-						addEntry(c.Name, c.Description)
-						for _, alias := range c.Aliases {
-							addEntry(alias, c.Description)
+					if !c.IsIncluded {
+						addEntry(cmd.Name, cmd.Description)
+						for _, alias := range cmd.Aliases {
+							addEntry(alias, cmd.Description)
 						}
 					}
 				}
 			}
 
-			addCommandCompletions(cfg.Commands, cfg.Namespace, false)
+			addCommandCompletions(cfg)
 			for _, includedCfg := range cfg.IncludedConfigs {
-				addCommandCompletions(includedCfg.Commands, includedCfg.Namespace, true)
+				addCommandCompletions(includedCfg)
 			}
 
 			return completions, cobra.ShellCompDirectiveNoFileComp
@@ -141,6 +148,7 @@ func buildCommand(cfg *config.Config, cmd config.Command, namespace string) *cob
 		Aliases: aliases,
 		Short:   cmd.Description,
 		Long:    cmd.Help,
+		Hidden:  cfg.IsCommandHidden(cmd.Name),
 		RunE: func(cobraCmd *cobra.Command, args []string) error {
 			interactive, _ := cobraCmd.Flags().GetBool("interactive")
 

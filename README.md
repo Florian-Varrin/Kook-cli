@@ -386,6 +386,22 @@ Namespace: cms
 Commands are listed as "cms:<command>" but also available without the namespace prefix.
 ```
 
+Command names can contain `:` to group related commands. The namespace is prepended as usual:
+
+```yaml
+namespace: manage
+
+commands:
+  - name: staging:start
+    script: ...
+```
+
+```bash
+kook manage:staging:start   # namespaced
+kook staging:start          # bare name
+kook sso:staging:start      # same command name in an included sso Kookfile
+```
+
 ### Includes
 
 A Kookfile can include other Kookfiles using the `includes` key. Each included Kookfile **must define a `namespace`** — its commands are then accessible as `namespace:command`.
@@ -427,11 +443,25 @@ kook sso:up       # aliases work too
 kook cms:start    # root commands still work as usual
 ```
 
+An include can also be written as a mapping. Set `hidden: true` to keep helper commands out of `kook --help` and shell completion; they stay runnable when typed or called through `$KOOK`:
+
+```yaml
+includes:
+  - ./sso                      # visible
+  - path: /etc/kook/docker     # hidden helpers
+    hidden: true
+  - path: ./ai                 # only ai:staging:* listed
+    only: ["staging:*"]
+```
+
+`only` takes glob patterns matched against command names without the namespace. Non-matching commands are hidden the same way. A pattern that matches no command is a load-time error, and `only` cannot be combined with `hidden`.
+
 **Key behaviours:**
 
 - Included commands are **only** accessible via their namespace prefix — bare `start` resolves to the root Kookfile only
 - Scripts from included Kookfiles run from **the directory of the included Kookfile**, not the caller's working directory. The caller's directory is available as `$KOOK_CALLER_DIR`
 - Only **one level of includes** is supported — if an included Kookfile has its own `includes`, they are ignored. Reference the third Kookfile directly in the root if needed
+- Chaining still works across levels: an included script that calls `$KOOK` runs from its own directory, so kook loads that Kookfile **with its own includes**. If `sso` includes `aws`, `sso:staging:start` can call `$KOOK aws:ecs:up` even when the root only includes `sso`
 - Namespace collisions (two includes with the same namespace, or an include matching the root namespace) are a load-time error
 
 ### Calling Kook Commands from Scripts (`$KOOK`)
@@ -468,6 +498,52 @@ commands:
   - name: up
     script: cd "$KOOK_CALLER_DIR" && docker compose up -d --remove-orphans
 ```
+
+### Shared Kookfiles
+
+Includes, `hidden` and `$KOOK_CALLER_DIR` combine to share commands between projects. Put generic Kookfiles in a common place, parametrise them with options, and keep thin wrappers in each project:
+
+```yaml
+# /etc/kook/docker/Kookfile
+version: 1
+namespace: docker
+
+commands:
+  - name: up
+    description: Start the project compose stack
+    script: cd "$KOOK_CALLER_DIR" && docker compose up -d --remove-orphans
+
+  - name: shell
+    options:
+      - name: container
+        shorthand: c
+        type: str
+        mandatory: true
+    script: docker exec -it {{ .container }} bash
+```
+
+```yaml
+# ~/projects/manage/Kookfile
+version: 1
+namespace: manage
+
+includes:
+  - path: /etc/kook/docker
+    hidden: true
+  - path: ../sso
+    only: ["staging:*"]
+
+commands:
+  - name: start
+    script: $KOOK docker:up
+
+  - name: shell
+    script: $KOOK docker:shell -c manage
+```
+
+- The base runs from `/etc/kook/docker`, so it moves to `$KOOK_CALLER_DIR` before acting on the project
+- To call another base from a base, `cd "$KOOK_CALLER_DIR"` first: `$KOOK` then loads the project Kookfile, which includes both
+- Include paths are absolute or relative to the including Kookfile; `~` and environment variables are not expanded
 
 ### Templates
 
@@ -806,7 +882,7 @@ We use [Semantic Versioning](https://semver.org/) with the following release typ
 When a version tag is pushed to GitHub, our CI/CD pipeline automatically:
 
 1. ✅ Runs all tests
-2. ✅ Builds binaries for all platforms (Linux, macOS, Windows)
+2. ✅ Builds binaries for Linux and macOS
 3. ✅ Creates package formats (.deb, .rpm, .apk)
 4. ✅ Generates checksums
 5. ✅ Creates a GitHub Release
@@ -822,33 +898,35 @@ The system automatically detects pre-releases:
 
 #### 3. Release Workflow (for Contributors)
 
+The release workflow only runs for tags matching `v*.*.*`. GitFlow names the tag after the release, so either include the `v` in the release name (as below) or set the prefix once with `git config gitflow.prefix.versiontag v`. Replace `X.Y.Z` with the actual version.
+
 **For stable releases:**
 ```bash
 # Using GitFlow
-git flow release start 1.1.0
+git flow release start vX.Y.Z
 # Make final changes, update docs...
-git flow release finish 1.1.0
+git flow release finish vX.Y.Z
 git push origin master develop --tags
 ```
 
 **For release candidates:**
 ```bash
 # Create RC before finishing release
-git flow release start 1.1.0
+git flow release start vX.Y.Z
 # ... make changes ...
-git tag -a v1.1.0-rc.1 -m "Release candidate 1"
-git push origin v1.1.0-rc.1
+git tag -a vX.Y.Z-rc.1 -m "Release candidate 1"
+git push origin vX.Y.Z-rc.1
 # Test the RC...
 # When ready, finish release normally
-git flow release finish 1.1.0
+git flow release finish vX.Y.Z
 git push origin master develop --tags
 ```
 
 **For experimental features:**
 ```bash
 # On a feature branch
-git tag -a v1.2.0-alpha.1 -m "Early alpha of new feature"
-git push origin v1.2.0-alpha.1
+git tag -a vX.Y.Z-alpha.1 -m "Early alpha of new feature"
+git push origin vX.Y.Z-alpha.1
 ```
 
 ### Available Platforms
@@ -865,10 +943,7 @@ Each release includes binaries for:
 - arm64 (Apple Silicon M1/M2/M3)
 - Format: .tar.gz
 
-**Windows:**
-- amd64 (64-bit)
-- arm64 (ARM64)
-- Format: .zip
+Windows is not supported: Kook runs scripts through `bash`.
 
 ### Choosing the Right Release
 
