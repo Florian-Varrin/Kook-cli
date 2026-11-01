@@ -1,0 +1,5 @@
+version: 1
+namespace: target
+commands:
+  - name: staging:start
+    script: echo "staging start"

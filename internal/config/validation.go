@@ -33,7 +33,7 @@ func validateConfig(config *Config) error {
 
 	// Validate includes
 	for i, inc := range config.Includes {
-		if inc == "" {
+		if inc.Path == "" {
 			return fmt.Errorf("include %d: path cannot be empty", i)
 		}
 	}
